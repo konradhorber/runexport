@@ -44,8 +44,7 @@ struct APIClientTests {
             distance: 10_000,
             duration: 3600,
             calories: 500,
-            averageHeartRate: nil,
-            route: nil
+            averageHeartRate: nil
         )
     }
 

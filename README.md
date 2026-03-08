@@ -37,15 +37,7 @@ The app sends a `POST` to `/api/runs` with `Content-Type: application/json`.
       "distance": 10000.0,
       "duration": 3600.0,
       "calories": 500.0,
-      "averageHeartRate": null,
-      "route": [
-        {
-          "latitude": 47.1,
-          "longitude": 8.5,
-          "altitude": 450.0,
-          "timestamp": 1234567890
-        }
-      ]
+      "averageHeartRate": null
     }
   ]
 }

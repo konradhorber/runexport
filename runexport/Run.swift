@@ -15,8 +15,7 @@ struct Run: Identifiable, Codable {
     let duration: TimeInterval // seconds
     let calories: Double?
     let averageHeartRate: Double?
-    let route: [LocationPoint]?
-    
+
     var distanceInKilometers: Double {
         distance / 1000.0
     }
@@ -34,13 +33,6 @@ struct Run: Identifiable, Codable {
         guard distanceInMiles > 0 else { return 0 }
         return duration / distanceInMiles
     }
-}
-
-struct LocationPoint: Codable {
-    let latitude: Double
-    let longitude: Double
-    let altitude: Double?
-    let timestamp: Date
 }
 
 // MARK: - API Request Format
