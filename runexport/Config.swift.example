@@ -1,0 +1,4 @@
+// Copy this file to Config.swift and set your server's local IP
+enum Config {
+    static let serverBaseURL = "http://192.168.x.x:3000/api"
+}
