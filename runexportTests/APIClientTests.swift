@@ -36,7 +36,7 @@ struct APIClientTests {
         return URLSession(configuration: config)
     }()
 
-    func makeRun() -> Run {
+    func makeRun(averageHeartRate: Double? = nil) -> Run {
         Run(
             id: UUID(),
             startDate: Date(timeIntervalSince1970: 0),
@@ -44,7 +44,11 @@ struct APIClientTests {
             distance: 10_000,
             duration: 3600,
             calories: 500,
-            averageHeartRate: nil
+            averageHeartRate: averageHeartRate,
+            maxHeartRate: nil,
+            averagePacePerKilometer: 360,
+            totalElevationAscent: nil,
+            totalElevationDescent: nil
         )
     }
 
@@ -122,5 +126,20 @@ struct APIClientTests {
         _ = try await client.exportRuns([makeRun(), makeRun()])
 
         #expect(capturedBody?.runs.count == 2)
+    }
+
+    @Test func exportRunsPayloadIncludesHeartRate() async throws {
+        var capturedBody: RunExportRequest?
+        MockURLProtocol.handler = { request in
+            if let data = self.readBody(from: request) {
+                capturedBody = try JSONDecoder().decode(RunExportRequest.self, from: data)
+            }
+            return try self.makeResponse(statusCode: 200, body: ["success": true, "runsProcessed": 1])
+        }
+
+        let client = APIClient(session: session)
+        _ = try await client.exportRuns([makeRun(averageHeartRate: 155.0)])
+
+        #expect(capturedBody?.runs.first?.averageHeartRate == 155.0)
     }
 }

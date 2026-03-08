@@ -11,7 +11,11 @@ struct RunTests {
             distance: distance,
             duration: duration,
             calories: nil,
-            averageHeartRate: nil
+            averageHeartRate: nil,
+            maxHeartRate: nil,
+            averagePacePerKilometer: distance > 0 ? duration / (distance / 1000.0) : nil,
+            totalElevationAscent: nil,
+            totalElevationDescent: nil
         )
     }
 
@@ -41,5 +45,39 @@ struct RunTests {
         let run = makeRun(distance: 0, duration: 600)
         #expect(run.pacePerKilometer == 0)
         #expect(run.pacePerMile == 0)
+    }
+
+    @Test func averagePacePerKilometerIsNilWhenNoDistance() {
+        let run = makeRun(distance: 0, duration: 600)
+        #expect(run.averagePacePerKilometer == nil)
+    }
+
+    @Test func averagePacePerKilometerMatchesPacePerKilometer() {
+        let run = makeRun(distance: 5000, duration: 25 * 60)
+        #expect(run.averagePacePerKilometer == run.pacePerKilometer)
+    }
+
+    @Test func newFieldsSurviveJSONRoundTrip() throws {
+        let original = Run(
+            id: UUID(),
+            startDate: Date(timeIntervalSince1970: 0),
+            endDate: Date(timeIntervalSince1970: 3600),
+            distance: 10_000,
+            duration: 3600,
+            calories: 500,
+            averageHeartRate: 155.0,
+            maxHeartRate: 178.0,
+            averagePacePerKilometer: 360,
+            totalElevationAscent: 120.5,
+            totalElevationDescent: 118.0
+        )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(Run.self, from: data)
+
+        #expect(decoded.averageHeartRate == 155.0)
+        #expect(decoded.maxHeartRate == 178.0)
+        #expect(decoded.averagePacePerKilometer == 360)
+        #expect(decoded.totalElevationAscent == 120.5)
+        #expect(decoded.totalElevationDescent == 118.0)
     }
 }
