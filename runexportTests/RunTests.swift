@@ -11,8 +11,7 @@ struct RunTests {
             distance: distance,
             duration: duration,
             calories: nil,
-            averageHeartRate: nil,
-            route: nil
+            averageHeartRate: nil
         )
     }
 
