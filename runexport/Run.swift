@@ -7,6 +7,14 @@
 
 import Foundation
 
+struct KilometerSplit: Codable {
+    let kilometer: Int
+    let pace: Double              // seconds/km
+    let averageHeartRate: Double? // bpm
+    let elevationAscent: Double?  // meters
+    let elevationDescent: Double? // meters
+}
+
 struct Run: Identifiable, Codable {
     let id: UUID
     let startDate: Date
@@ -19,6 +27,7 @@ struct Run: Identifiable, Codable {
     let averagePacePerKilometer: Double? // seconds/km
     let totalElevationAscent: Double?    // meters
     let totalElevationDescent: Double?   // meters
+    let splits: [KilometerSplit]?
 
     var distanceInKilometers: Double {
         distance / 1000.0

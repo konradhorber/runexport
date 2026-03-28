@@ -15,7 +15,8 @@ struct RunTests {
             maxHeartRate: nil,
             averagePacePerKilometer: distance > 0 ? duration / (distance / 1000.0) : nil,
             totalElevationAscent: nil,
-            totalElevationDescent: nil
+            totalElevationDescent: nil,
+            splits: nil
         )
     }
 
@@ -69,7 +70,8 @@ struct RunTests {
             maxHeartRate: 178.0,
             averagePacePerKilometer: 360,
             totalElevationAscent: 120.5,
-            totalElevationDescent: 118.0
+            totalElevationDescent: 118.0,
+            splits: [KilometerSplit(kilometer: 1, pace: 355, averageHeartRate: 150, elevationAscent: 10, elevationDescent: 5)]
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(Run.self, from: data)
@@ -79,5 +81,8 @@ struct RunTests {
         #expect(decoded.averagePacePerKilometer == 360)
         #expect(decoded.totalElevationAscent == 120.5)
         #expect(decoded.totalElevationDescent == 118.0)
+        #expect(decoded.splits?.first?.kilometer == 1)
+        #expect(decoded.splits?.first?.pace == 355)
+        #expect(decoded.splits?.first?.averageHeartRate == 150)
     }
 }

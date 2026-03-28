@@ -48,7 +48,8 @@ struct APIClientTests {
             maxHeartRate: nil,
             averagePacePerKilometer: 360,
             totalElevationAscent: nil,
-            totalElevationDescent: nil
+            totalElevationDescent: nil,
+            splits: nil
         )
     }
 
