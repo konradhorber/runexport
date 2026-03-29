@@ -17,8 +17,8 @@ struct RunTests {
             averagePacePerKilometer: distance > 0 ? duration / (distance / 1000.0) : nil,
             totalElevationAscent: nil,
             totalElevationDescent: nil,
-            workoutEvents: [],
-            splits: nil
+            splits: nil,
+            workoutActivities: nil
         )
     }
 
@@ -88,8 +88,8 @@ struct RunTests {
             averagePacePerKilometer: 360,
             totalElevationAscent: 120.5,
             totalElevationDescent: 118.0,
-            workoutEvents: [WorkoutEvent(type: .segment, startDate: Date(timeIntervalSince1970: 0), endDate: Date(timeIntervalSince1970: 300))],
-            splits: [KilometerSplit(kilometer: 1, pace: 355, averageHeartRate: 150, elevationAscent: 10, elevationDescent: 5)]
+            splits: [KilometerSplit(kilometer: 1, pace: 355, averageHeartRate: 150, elevationAscent: 10, elevationDescent: 5)],
+            workoutActivities: [WorkoutActivity(startDate: Date(timeIntervalSince1970: 0), endDate: Date(timeIntervalSince1970: 300), duration: 300, distance: 1000, averageHeartRate: 155, averagePace: 300, activityType: "running")]
         )
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -108,5 +108,7 @@ struct RunTests {
         #expect(decoded.splits?.first?.kilometer == 1)
         #expect(decoded.splits?.first?.pace == 355)
         #expect(decoded.splits?.first?.averageHeartRate == 150)
+        #expect(decoded.workoutActivities?.first?.activityType == "running")
+        #expect(decoded.workoutActivities?.first?.distance == 1000)
     }
 }

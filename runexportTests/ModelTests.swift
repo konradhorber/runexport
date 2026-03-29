@@ -26,82 +26,6 @@ import Testing
 import Foundation
 @testable import runexport
 
-// MARK: - WorkoutEventType
-
-// Tests that every event type encodes to a human-readable string and decodes back correctly.
-// Using @Test(arguments:) with WorkoutEventType.allCases means Swift Testing runs this
-// test once per case and reports each one individually — much better than a loop.
-@Suite("WorkoutEventType") struct WorkoutEventTypeTests {
-
-    @Test("all cases encode as their raw string name",
-          arguments: WorkoutEventType.allCases)
-    func encodesAsRawString(eventType: WorkoutEventType) throws {
-        let event = WorkoutEvent(
-            type: eventType,
-            startDate: Date(timeIntervalSince1970: 0),
-            endDate: Date(timeIntervalSince1970: 60)
-        )
-        let json = try JSONEncoder().encode(event)
-        // Parse the raw JSON dictionary so we can inspect the "type" string directly
-        let dict = try JSONSerialization.jsonObject(with: json) as! [String: Any]
-        #expect(dict["type"] as? String == eventType.rawValue)
-    }
-
-    @Test("all cases survive a JSON round-trip",
-          arguments: WorkoutEventType.allCases)
-    func jsonRoundTrip(eventType: WorkoutEventType) throws {
-        let event = WorkoutEvent(
-            type: eventType,
-            startDate: Date(timeIntervalSince1970: 0),
-            endDate: Date(timeIntervalSince1970: 60)
-        )
-        let data = try JSONEncoder().encode(event)
-        let decoded = try JSONDecoder().decode(WorkoutEvent.self, from: data)
-        #expect(decoded.type == eventType)
-    }
-}
-
-// MARK: - WorkoutEvent
-
-@Suite("WorkoutEvent") struct WorkoutEventTests {
-
-    // Demonstrates filtering workoutEvents by type — the pattern a server would use
-    // to extract interval boundaries from a run.
-    @Test("segment events can be filtered from mixed workoutEvents") func filterSegments() {
-        let segments = RunFixtures.intervalRun.workoutEvents.filter { $0.type == .segment }
-        #expect(segments.count == 4) // 2 work + 2 recovery
-    }
-
-    @Test("non-segment events are absent from an interval run") func noNonSegmentEvents() {
-        let nonSegments = RunFixtures.intervalRun.workoutEvents.filter { $0.type != .segment }
-        #expect(nonSegments.isEmpty)
-    }
-
-    // Consecutive segment events should be back-to-back (no gaps or overlaps).
-    @Test("segment events are contiguous") func segmentsAreContiguous() {
-        let segments = RunFixtures.intervalRun.workoutEvents.filter { $0.type == .segment }
-        for i in 1..<segments.count {
-            #expect(segments[i].startDate == segments[i - 1].endDate)
-        }
-    }
-
-    @Test("pause run has no segment events") func pauseRunHasNoSegments() {
-        let segments = RunFixtures.runWithPause.workoutEvents.filter { $0.type == .segment }
-        #expect(segments.isEmpty)
-    }
-
-    @Test("pause is followed by resume") func pauseFollowedByResume() {
-        let events = RunFixtures.runWithPause.workoutEvents
-        // try #require is like #expect but stops the test immediately if false —
-        // use it for preconditions that make the rest of the test meaningless if they fail
-        let pause  = try? #require(events.first { $0.type == .pause })
-        let resume = try? #require(events.first { $0.type == .resume })
-        if let pause, let resume {
-            #expect(resume.startDate >= pause.endDate)
-        }
-    }
-}
-
 // MARK: - KilometerSplit
 
 @Suite("KilometerSplit") struct KilometerSplitTests {
@@ -181,41 +105,102 @@ import Foundation
     }
 }
 
+// MARK: - WorkoutActivity
+
+@Suite("WorkoutActivity") struct WorkoutActivityTests {
+
+    let encoder: JSONEncoder = {
+        let e = JSONEncoder()
+        e.dateEncodingStrategy = .iso8601
+        return e
+    }()
+    let decoder: JSONDecoder = {
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .iso8601
+        return d
+    }()
+
+    func makeActivity(distance: Double? = 1000, hr: Double? = 165, activityType: String = "running") -> WorkoutActivity {
+        WorkoutActivity(
+            startDate: Date(timeIntervalSince1970: 1_740_200_000),
+            endDate:   Date(timeIntervalSince1970: 1_740_200_270),
+            duration: 270,
+            distance: distance,
+            averageHeartRate: hr,
+            averagePace: distance.flatMap { d in d > 0 ? 270 / (d / 1000) : nil },
+            activityType: activityType
+        )
+    }
+
+    @Test("survives JSON round-trip") func jsonRoundTrip() throws {
+        let data = try encoder.encode(makeActivity())
+        let decoded = try decoder.decode(WorkoutActivity.self, from: data)
+        #expect(decoded.duration == 270)
+        #expect(decoded.distance == 1000)
+        #expect(decoded.averageHeartRate == 165)
+        #expect(decoded.averagePace == 270)
+        #expect(decoded.activityType == "running")
+    }
+
+    @Test("nil optional fields survive round-trip as nil") func nilFieldsRoundTrip() throws {
+        let activity = makeActivity(distance: nil, hr: nil)
+        let data = try encoder.encode(activity)
+        let decoded = try decoder.decode(WorkoutActivity.self, from: data)
+        #expect(decoded.distance == nil)
+        #expect(decoded.averageHeartRate == nil)
+        #expect(decoded.averagePace == nil)
+    }
+
+    @Test("activityType string is preserved") func activityTypePreserved() throws {
+        let data = try encoder.encode(makeActivity(activityType: "walking"))
+        let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        #expect(dict["activityType"] as? String == "walking")
+    }
+
+    @Test("dates encode as ISO 8601") func datesAreISO8601() throws {
+        let data = try encoder.encode(makeActivity())
+        let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        #expect(dict["startDate"] is String)
+        #expect(dict["endDate"] is String)
+    }
+
+    @Test("run with activities survives JSON round-trip") func runWithActivitiesRoundTrip() throws {
+        let run = RunFixtures.intervalRunWithActivities
+        let data = try encoder.encode(run)
+        let decoded = try decoder.decode(Run.self, from: data)
+        #expect(decoded.workoutActivities?.count == run.workoutActivities?.count)
+        #expect(decoded.workoutActivities?.first?.activityType == "running")
+        #expect(decoded.workoutActivities?.first?.distance == 1000)
+    }
+
+    @Test("plain run has nil workoutActivities") func plainRunHasNilActivities() throws {
+        #expect(RunFixtures.outdoor5km.workoutActivities == nil)
+    }
+
+    @Test("interval run with activities has alternating work and recovery") func alternatingPhases() {
+        let activities = RunFixtures.intervalRunWithActivities.workoutActivities!
+        // Work intervals: faster pace; recovery: slower pace
+        let paces = activities.compactMap { $0.averagePace }
+        let workPaces = paces.enumerated().filter { $0.offset % 2 == 0 }.map { $0.element }
+        let recoveryPaces = paces.enumerated().filter { $0.offset % 2 == 1 }.map { $0.element }
+        #expect(workPaces.allSatisfy { $0 < 300 })     // work: sub-5:00/km
+        #expect(recoveryPaces.allSatisfy { $0 > 300 }) // recovery: above 5:00/km
+    }
+}
+
 // MARK: - Run — intervals
 
 @Suite("Run — intervals") struct RunIntervalTests {
 
-    @Test("interval run has segment events") func hasSegmentEvents() {
-        #expect(!RunFixtures.intervalRun.workoutEvents.isEmpty)
+    @Test("interval run without activities has nil workoutActivities") func noActivities() {
+        #expect(RunFixtures.intervalRun.workoutActivities == nil)
     }
 
-    @Test("interval run has no splits (no GPS route recorded)") func noSplits() {
-        // GPS is typically not stored for structured interval workouts on Apple Watch
+    @Test("interval run has no splits when no GPS route recorded") func noSplits() {
         #expect(RunFixtures.intervalRun.splits == nil)
     }
 
-    @Test("free-form run has no segment events") func freeFormNoSegments() {
-        let segments = RunFixtures.outdoor5km.workoutEvents.filter { $0.type == .segment }
-        #expect(segments.isEmpty)
-    }
-
-    // Verifying the work/recovery alternation expected by a server-side consumer:
-    // even-indexed segments (0, 2, …) are work; odd-indexed (1, 3, …) are recovery.
-    @Test("segment event durations reflect work/recovery pattern") func workRecoveryDurations() {
-        let segments = RunFixtures.intervalRun.workoutEvents.filter { $0.type == .segment }
-        let durations = segments.map { $0.endDate.timeIntervalSince($0.startDate) }
-
-        // Work intervals in the fixture are 240s, recovery intervals are 300s
-        #expect(durations[0] == 240) // work 1
-        #expect(durations[1] == 300) // recovery 1
-        #expect(durations[2] == 240) // work 2
-        #expect(durations[3] == 300) // recovery 2
-    }
-
-    @Test("workout events survive JSON round-trip") func eventsRoundTrip() throws {
-        let data = try JSONEncoder().encode(RunFixtures.intervalRun)
-        let decoded = try JSONDecoder().decode(Run.self, from: data)
-        #expect(decoded.workoutEvents.count == RunFixtures.intervalRun.workoutEvents.count)
-        #expect(decoded.workoutEvents.first?.type == .segment)
+    @Test("plain run has no workoutActivities") func plainRunNoActivities() {
+        #expect(RunFixtures.outdoor5km.workoutActivities == nil)
     }
 }

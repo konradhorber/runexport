@@ -25,14 +25,14 @@ enum RunFixtures {
         averagePacePerKilometer: 312,
         totalElevationAscent: 48,
         totalElevationDescent: 45,
-        workoutEvents: [],
         splits: [
             KilometerSplit(kilometer: 1, pace: 305, averageHeartRate: 154, elevationAscent: 12,   elevationDescent: nil),
             KilometerSplit(kilometer: 2, pace: 310, averageHeartRate: 161, elevationAscent: nil,  elevationDescent: 8),
             KilometerSplit(kilometer: 3, pace: 318, averageHeartRate: 165, elevationAscent: 22,   elevationDescent: nil),
             KilometerSplit(kilometer: 4, pace: 308, averageHeartRate: 167, elevationAscent: nil,  elevationDescent: 15),
             KilometerSplit(kilometer: 5, pace: 319, averageHeartRate: 170, elevationAscent: 14,   elevationDescent: 22),
-        ]
+        ],
+        workoutActivities: nil
     )
 
     // An indoor treadmill run.
@@ -50,13 +50,11 @@ enum RunFixtures {
         averagePacePerKilometer: 300,
         totalElevationAscent: nil, // not recorded indoors
         totalElevationDescent: nil,
-        workoutEvents: [],
-        splits: nil                // no GPS route
+        splits: nil,               // no GPS route
+        workoutActivities: nil
     )
 
-    // An outdoor interval session recorded with the Apple Watch interval template.
-    // workoutEvents contains .segment events marking each work/recovery period.
-    // Segments alternate: work → recovery → work → recovery.
+    // An outdoor interval run without workoutActivities (e.g. older recording).
     static let intervalRun = Run(
         id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
         startDate: Date(timeIntervalSince1970: 1_740_200_000),
@@ -70,35 +68,18 @@ enum RunFixtures {
         averagePacePerKilometer: 500,
         totalElevationAscent: 10,
         totalElevationDescent: 9,
-        workoutEvents: [
-            // work 1: 4:00/km effort for 1 km
-            WorkoutEvent(type: .segment,
-                         startDate: Date(timeIntervalSince1970: 1_740_200_060),
-                         endDate:   Date(timeIntervalSince1970: 1_740_200_300)),
-            // recovery 1: easy jog for 5 min
-            WorkoutEvent(type: .segment,
-                         startDate: Date(timeIntervalSince1970: 1_740_200_300),
-                         endDate:   Date(timeIntervalSince1970: 1_740_200_600)),
-            // work 2
-            WorkoutEvent(type: .segment,
-                         startDate: Date(timeIntervalSince1970: 1_740_200_600),
-                         endDate:   Date(timeIntervalSince1970: 1_740_200_840)),
-            // recovery 2
-            WorkoutEvent(type: .segment,
-                         startDate: Date(timeIntervalSince1970: 1_740_200_840),
-                         endDate:   Date(timeIntervalSince1970: 1_740_201_140)),
-        ],
-        splits: nil
+        splits: nil,
+        workoutActivities: nil
     )
 
-    // A run where the user paused and resumed mid-workout.
-    // workoutEvents contains .pause / .resume rather than .segment.
+    // A run where the user paused mid-workout.
+    // duration < endDate - startDate reflects the active-only time.
     static let runWithPause = Run(
         id: UUID(uuidString: "00000000-0000-0000-0000-000000000004")!,
         startDate: Date(timeIntervalSince1970: 1_740_300_000),
         endDate:   Date(timeIntervalSince1970: 1_740_303_000),
         distance: 7_500,
-        duration: 2_700,
+        duration: 2_700,           // 300s pause → duration < elapsed
         isIndoor: false,
         calories: 430,
         averageHeartRate: 155,
@@ -106,14 +87,54 @@ enum RunFixtures {
         averagePacePerKilometer: 360,
         totalElevationAscent: 22,
         totalElevationDescent: 20,
-        workoutEvents: [
-            WorkoutEvent(type: .pause,
-                         startDate: Date(timeIntervalSince1970: 1_740_301_200),
-                         endDate:   Date(timeIntervalSince1970: 1_740_301_500)),
-            WorkoutEvent(type: .resume,
-                         startDate: Date(timeIntervalSince1970: 1_740_301_500),
-                         endDate:   Date(timeIntervalSince1970: 1_740_301_500)),
-        ],
-        splits: nil
+        splits: nil,
+        workoutActivities: nil
+    )
+
+    // A 5×1km interval run with workoutActivities populated.
+    // Alternating work (1km @ 4:30/km) and recovery (250m easy jog).
+    static let intervalRunWithActivities = Run(
+        id: UUID(uuidString: "00000000-0000-0000-0000-000000000005")!,
+        startDate: Date(timeIntervalSince1970: 1_740_400_000),
+        endDate:   Date(timeIntervalSince1970: 1_740_401_750),
+        distance: 6_000,
+        duration: 1_750,
+        isIndoor: false,
+        calories: 520,
+        averageHeartRate: 162,
+        maxHeartRate: 182,
+        averagePacePerKilometer: 292,
+        totalElevationAscent: 12,
+        totalElevationDescent: 10,
+        splits: nil,
+        workoutActivities: [
+            WorkoutActivity(startDate: Date(timeIntervalSince1970: 1_740_400_000),
+                            endDate:   Date(timeIntervalSince1970: 1_740_400_270),
+                            duration: 270, distance: 1000, averageHeartRate: 158, averagePace: 270, activityType: "running"),
+            WorkoutActivity(startDate: Date(timeIntervalSince1970: 1_740_400_270),
+                            endDate:   Date(timeIntervalSince1970: 1_740_400_370),
+                            duration: 100, distance: 250, averageHeartRate: 142, averagePace: 400, activityType: "running"),
+            WorkoutActivity(startDate: Date(timeIntervalSince1970: 1_740_400_370),
+                            endDate:   Date(timeIntervalSince1970: 1_740_400_640),
+                            duration: 270, distance: 1000, averageHeartRate: 163, averagePace: 270, activityType: "running"),
+            WorkoutActivity(startDate: Date(timeIntervalSince1970: 1_740_400_640),
+                            endDate:   Date(timeIntervalSince1970: 1_740_400_740),
+                            duration: 100, distance: 250, averageHeartRate: 147, averagePace: 400, activityType: "running"),
+            WorkoutActivity(startDate: Date(timeIntervalSince1970: 1_740_400_740),
+                            endDate:   Date(timeIntervalSince1970: 1_740_401_010),
+                            duration: 270, distance: 1000, averageHeartRate: 166, averagePace: 270, activityType: "running"),
+            WorkoutActivity(startDate: Date(timeIntervalSince1970: 1_740_401_010),
+                            endDate:   Date(timeIntervalSince1970: 1_740_401_110),
+                            duration: 100, distance: 250, averageHeartRate: 150, averagePace: 400, activityType: "running"),
+            WorkoutActivity(startDate: Date(timeIntervalSince1970: 1_740_401_110),
+                            endDate:   Date(timeIntervalSince1970: 1_740_401_380),
+                            duration: 270, distance: 1000, averageHeartRate: 168, averagePace: 270, activityType: "running"),
+            WorkoutActivity(startDate: Date(timeIntervalSince1970: 1_740_401_380),
+                            endDate:   Date(timeIntervalSince1970: 1_740_401_480),
+                            duration: 100, distance: 250, averageHeartRate: 152, averagePace: 400, activityType: "running"),
+            WorkoutActivity(startDate: Date(timeIntervalSince1970: 1_740_401_480),
+                            endDate:   Date(timeIntervalSince1970: 1_740_401_750),
+                            duration: 270, distance: 1000, averageHeartRate: 171, averagePace: 270, activityType: "running"),
+        ]
     )
 }

@@ -90,42 +90,38 @@ All dates are **ISO 8601 strings** in UTC (e.g. `"2025-03-27T10:00:00Z"`), parse
 | `averagePacePerKilometer` | number          | yes      | `duration / (distance / 1000)` in seconds per km. `null` if distance is zero |
 | `totalElevationAscent`    | number          | yes      | Total ascent in meters (`HKMetadataKeyElevationAscended`). `null` if not recorded (e.g. indoor) |
 | `totalElevationDescent`   | number          | yes      | Total descent in meters (`HKMetadataKeyElevationDescended`). `null` if not recorded |
-| `workoutEvents`           | array           | no       | Ordered list of `WorkoutEvent` objects. Empty array if none recorded. Use `.segment` events to identify interval boundaries |
 | `splits`                  | array           | yes      | Per-km breakdown as `KilometerSplit` objects. `null` when no GPS route is available (indoor runs, or outdoor runs where location was not recorded) |
+| `workoutActivities`       | array           | yes      | Per-phase breakdown as `WorkoutActivity` objects. `null` for plain runs. Use this to identify interval work/recovery phases |
 
 ---
 
-### `WorkoutEvent`
+### `WorkoutActivity`
 
-Mirrors `HKWorkoutEvent`. Events are in chronological order.
+Per-phase breakdown of a structured workout. Populated from `HKWorkout.workoutActivities` (iOS 16+). Each entry represents one step in the workout — for an interval run this gives one entry per work interval and one per recovery, in order. `null` for plain runs with no template structure.
 
 ```json
 {
-  "type": "segment",
-  "startDate": "2025-03-27T10:01:00Z",
-  "endDate": "2025-03-27T10:06:00Z"
+  "startDate": "2026-03-26T16:51:25Z",
+  "endDate": "2026-03-26T16:55:55Z",
+  "duration": 270.0,
+  "distance": 1000.0,
+  "averageHeartRate": 165.0,
+  "averagePace": 270.0,
+  "activityType": "running"
 }
 ```
 
-| Field       | Type   | Description |
-|-------------|--------|-------------|
-| `type`      | string            | Event type (see `WorkoutEventType` below) |
-| `startDate` | string (ISO 8601) | Event start, UTC |
-| `endDate`   | string (ISO 8601) | Event end, UTC |
+| Field              | Type              | Nullable | Description |
+|--------------------|-------------------|----------|-------------|
+| `startDate`        | string (ISO 8601) | no       | Phase start, UTC |
+| `endDate`          | string (ISO 8601) | no       | Phase end, UTC |
+| `duration`         | number            | no       | Phase duration in seconds |
+| `distance`         | number            | yes      | Distance covered in meters. `null` if no distance data for this phase |
+| `averageHeartRate` | number            | yes      | Average HR in bpm during this phase. `null` if no HR data |
+| `averagePace`      | number            | yes      | Seconds per km. `null` if `distance` is unavailable |
+| `activityType`     | string            | no       | `"running"`, `"walking"`, or `"other(N)"` where N is the raw HealthKit activity type integer |
 
-#### `WorkoutEventType` values
-
-| Value           | HealthKit source                | Meaning |
-|-----------------|---------------------------------|---------|
-| `pause`         | `.pause`                        | User manually paused the workout |
-| `resume`        | `.resume`                       | User manually resumed |
-| `lap`           | `.lap`                          | Manual or Auto Lap marker |
-| `marker`        | `.marker`                       | Generic marker |
-| `motionPaused`  | `.motionPaused`                 | Auto-pause triggered by lack of motion |
-| `motionResumed` | `.motionResumed`                | Auto-pause cleared |
-| `segment`       | `.segment`                      | **Interval boundary.** Emitted by Apple Watch when a workout uses an interval template. Consecutive pairs of `segment` events delimit individual work/recovery intervals — the interval runs from a segment's `startDate` to its `endDate` |
-
-> **Interval detection:** Filter `workoutEvents` for `type == "segment"`. Each segment event covers exactly one interval period (work or recovery). Alternate segments correspond to alternating work/recovery phases. Only present when the workout was recorded using an interval template; `workoutEvents` will be empty for free-form runs.
+> **Interval detection:** For interval runs, `workoutActivities` is the authoritative source of interval structure. Each alternating entry is a work/recovery phase — distinguish them by `averagePace` or `averageHeartRate`. For plain runs this field contains a single entry covering the whole workout.
 
 ---
 
@@ -164,6 +160,8 @@ runexport/
 └── ContentView.swift      # UI
 
 runexportTests/
-├── RunTests.swift         # Unit tests for Run computed properties and JSON serialisation
-└── APIClientTests.swift   # Unit tests for APIClient request logic (mocked network)
+├── TestFixtures.swift     # Mock Run objects shared across test suites
+├── ModelTests.swift       # Tests for Run, KilometerSplit, WorkoutActivity models
+├── RunTests.swift         # Tests for Run computed properties and JSON serialisation
+└── APIClientTests.swift   # Tests for APIClient request logic (mocked network)
 ```

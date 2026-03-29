@@ -50,8 +50,8 @@ struct APIClientTests {
             averagePacePerKilometer: 360,
             totalElevationAscent: nil,
             totalElevationDescent: nil,
-            workoutEvents: [],
-            splits: nil
+            splits: nil,
+            workoutActivities: nil
         )
     }
 

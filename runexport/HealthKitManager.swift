@@ -31,6 +31,7 @@ class HealthKitManager {
             workoutType,
             HKObjectType.quantityType(forIdentifier: .heartRate)!,
             HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
+            HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
             HKSeriesType.workoutRoute()
         ]
 
@@ -75,6 +76,7 @@ class HealthKitManager {
                     let ascent = (workout.metadata?[HKMetadataKeyElevationAscended] as? HKQuantity)?.doubleValue(for: .meter())
                     let descent = (workout.metadata?[HKMetadataKeyElevationDescended] as? HKQuantity)?.doubleValue(for: .meter())
                     let splits = try? await self.fetchKilometerSplits(for: workout)
+                    let activities = workout.workoutActivities.compactMap { mapWorkoutActivity($0) }
 
                     return Run(
                         id: workout.uuid,
@@ -89,8 +91,8 @@ class HealthKitManager {
                         averagePacePerKilometer: distanceMeters > 0 ? workout.duration / (distanceMeters / 1000.0) : nil,
                         totalElevationAscent: ascent,
                         totalElevationDescent: descent,
-                        workoutEvents: (workout.workoutEvents ?? []).compactMap { mapWorkoutEvent($0) },
-                        splits: splits?.isEmpty == false ? splits : nil
+                        splits: splits?.isEmpty == false ? splits : nil,
+                        workoutActivities: activities.isEmpty ? nil : activities
                     )
                 }
             }
@@ -239,20 +241,32 @@ class HealthKitManager {
     }
 }
 
-private func mapWorkoutEvent(_ event: HKWorkoutEvent) -> WorkoutEvent? {
-    let type: WorkoutEventType
-    switch event.type {
-    case .pause:         type = .pause
-    case .resume:        type = .resume
-    case .lap:           type = .lap
-    case .marker:        type = .marker
-    case .motionPaused:  type = .motionPaused
-    case .motionResumed: type = .motionResumed
-    case .segment:       type = .segment
-    @unknown default:    return nil
-    }
-    return WorkoutEvent(type: type, startDate: event.dateInterval.start, endDate: event.dateInterval.end)
+private func mapWorkoutActivity(_ activity: HKWorkoutActivity) -> WorkoutActivity? {
+    guard let endDate = activity.endDate else { return nil }
+    let distanceType = HKQuantityType(.distanceWalkingRunning)
+    let heartRateType = HKQuantityType(.heartRate)
+    let distance = activity.allStatistics[distanceType]?.sumQuantity()?.doubleValue(for: .meter())
+    let avgHR = activity.allStatistics[heartRateType]?.averageQuantity()?.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+    let pace: Double? = distance.flatMap { d in d > 0 ? activity.duration / (d / 1000.0) : nil }
+    return WorkoutActivity(
+        startDate: activity.startDate,
+        endDate: endDate,
+        duration: activity.duration,
+        distance: distance,
+        averageHeartRate: avgHR,
+        averagePace: pace,
+        activityType: workoutActivityTypeName(activity.workoutConfiguration.activityType)
+    )
 }
+
+private func workoutActivityTypeName(_ type: HKWorkoutActivityType) -> String {
+    switch type {
+    case .running: return "running"
+    case .walking: return "walking"
+    default:       return "other(\(type.rawValue))"
+    }
+}
+
 
 enum HealthKitError: LocalizedError {
     case notAvailable

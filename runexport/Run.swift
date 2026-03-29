@@ -7,16 +7,14 @@
 
 import Foundation
 
-enum WorkoutEventType: String, Codable, CaseIterable {
-    case pause, resume, lap, marker
-    case motionPaused, motionResumed
-    case segment
-}
-
-struct WorkoutEvent: Codable {
-    let type: WorkoutEventType
+struct WorkoutActivity: Codable {
     let startDate: Date
     let endDate: Date
+    let duration: TimeInterval    // seconds
+    let distance: Double?         // meters — nil if no distance data for this phase
+    let averageHeartRate: Double? // bpm — nil if no HR data
+    let averagePace: Double?      // seconds/km — nil if distance unavailable
+    let activityType: String      // "running", "walking", or "other(N)"
 }
 
 struct KilometerSplit: Codable {
@@ -40,8 +38,8 @@ struct Run: Identifiable, Codable {
     let averagePacePerKilometer: Double? // seconds/km
     let totalElevationAscent: Double?    // meters
     let totalElevationDescent: Double?   // meters
-    let workoutEvents: [WorkoutEvent]
     let splits: [KilometerSplit]?
+    let workoutActivities: [WorkoutActivity]?
 
     var distanceInKilometers: Double {
         distance / 1000.0
