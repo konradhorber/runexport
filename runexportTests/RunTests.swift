@@ -60,6 +60,20 @@ struct RunTests {
         #expect(run.averagePacePerKilometer == run.pacePerKilometer)
     }
 
+    @Test func datesEncodeAsISO8601() throws {
+        let run = makeRun(distance: 5000, duration: 1800)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(run)
+        let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        // Dates must be strings, not numbers
+        #expect(dict["startDate"] is String)
+        #expect(dict["endDate"] is String)
+        // Must parse as valid ISO 8601
+        let startStr = try #require(dict["startDate"] as? String)
+        #expect(ISO8601DateFormatter().date(from: startStr) != nil)
+    }
+
     @Test func newFieldsSurviveJSONRoundTrip() throws {
         let original = Run(
             id: UUID(),
@@ -77,8 +91,12 @@ struct RunTests {
             workoutEvents: [WorkoutEvent(type: .segment, startDate: Date(timeIntervalSince1970: 0), endDate: Date(timeIntervalSince1970: 300))],
             splits: [KilometerSplit(kilometer: 1, pace: 355, averageHeartRate: 150, elevationAscent: 10, elevationDescent: 5)]
         )
-        let data = try JSONEncoder().encode(original)
-        let decoded = try JSONDecoder().decode(Run.self, from: data)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let data = try encoder.encode(original)
+        let decoded = try decoder.decode(Run.self, from: data)
 
         #expect(decoded.isIndoor == true)
         #expect(decoded.averageHeartRate == 155.0)

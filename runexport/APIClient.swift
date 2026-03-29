@@ -35,7 +35,9 @@ actor APIClient {
             exportDate: Date()
         )
         
-        request.httpBody = try JSONEncoder().encode(exportRequest)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        request.httpBody = try encoder.encode(exportRequest)
         
         let (data, response) = try await session.data(for: request)
         

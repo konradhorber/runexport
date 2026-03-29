@@ -120,7 +120,9 @@ struct APIClientTests {
         var capturedBody: RunExportRequest?
         MockURLProtocol.handler = { request in
             if let data = self.readBody(from: request) {
-                capturedBody = try JSONDecoder().decode(RunExportRequest.self, from: data)
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                capturedBody = try decoder.decode(RunExportRequest.self, from: data)
             }
             return try self.makeResponse(statusCode: 200, body: ["success": true, "runsProcessed": 2])
         }
@@ -135,7 +137,9 @@ struct APIClientTests {
         var capturedBody: RunExportRequest?
         MockURLProtocol.handler = { request in
             if let data = self.readBody(from: request) {
-                capturedBody = try JSONDecoder().decode(RunExportRequest.self, from: data)
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                capturedBody = try decoder.decode(RunExportRequest.self, from: data)
             }
             return try self.makeResponse(statusCode: 200, body: ["success": true, "runsProcessed": 1])
         }

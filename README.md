@@ -28,7 +28,7 @@ iOS app that reads running workouts from HealthKit and POSTs them as JSON to a l
 ```json
 {
   "deviceId": "A1B2C3D4-...",
-  "exportDate": 1743200000.0,
+  "exportDate": "2025-03-28T14:00:00Z",
   "runs": [ <Run>, ... ]
 }
 ```
@@ -53,15 +53,15 @@ iOS app that reads running workouts from HealthKit and POSTs them as JSON to a l
 
 ## Data model
 
-All dates are Unix timestamps (seconds since epoch, floating-point). All distances are in **meters**, durations in **seconds**, heart rates in **bpm**, and elevations in **meters**. This matches HealthKit's native SI units exactly — no unit conversion is applied.
+All dates are **ISO 8601 strings** in UTC (e.g. `"2025-03-27T10:00:00Z"`), parseable by `new Date(str)` in JavaScript and `Date(iso8601: str)` in Swift. All distances are in **meters**, durations in **seconds**, heart rates in **bpm**, and elevations in **meters**. This matches HealthKit's native SI units exactly — no unit conversion is applied.
 
 ### `Run`
 
 ```json
 {
   "id": "A1B2C3D4-E5F6-...",
-  "startDate": 1743100000.0,
-  "endDate": 1743103600.0,
+  "startDate": "2025-03-27T10:00:00Z",
+  "endDate": "2025-03-27T11:00:00Z",
   "distance": 10234.5,
   "duration": 3541.0,
   "isIndoor": false,
@@ -79,8 +79,8 @@ All dates are Unix timestamps (seconds since epoch, floating-point). All distanc
 | Field                     | Type            | Nullable | Description |
 |---------------------------|-----------------|----------|-------------|
 | `id`                      | string (UUID)   | no       | HealthKit workout UUID — stable across exports |
-| `startDate`               | number          | no       | Workout start, Unix timestamp |
-| `endDate`                 | number          | no       | Workout end, Unix timestamp |
+| `startDate`               | string (ISO 8601) | no     | Workout start, UTC |
+| `endDate`                 | string (ISO 8601) | no     | Workout end, UTC |
 | `distance`                | number          | no       | Total distance in meters (`HKWorkout.totalDistance`) |
 | `duration`                | number          | no       | Active duration in seconds (`HKWorkout.duration`) |
 | `isIndoor`                | boolean         | no       | `true` for treadmill / indoor runs (`HKMetadataKeyIndoorWorkout`). When `true`, GPS route and splits will be absent and pace data comes from the watch accelerometer or GymKit — treat with caution |
@@ -102,16 +102,16 @@ Mirrors `HKWorkoutEvent`. Events are in chronological order.
 ```json
 {
   "type": "segment",
-  "startDate": 1743100060.0,
-  "endDate": 1743100360.0
+  "startDate": "2025-03-27T10:01:00Z",
+  "endDate": "2025-03-27T10:06:00Z"
 }
 ```
 
 | Field       | Type   | Description |
 |-------------|--------|-------------|
-| `type`      | string | Event type (see `WorkoutEventType` below) |
-| `startDate` | number | Event start, Unix timestamp |
-| `endDate`   | number | Event end, Unix timestamp |
+| `type`      | string            | Event type (see `WorkoutEventType` below) |
+| `startDate` | string (ISO 8601) | Event start, UTC |
+| `endDate`   | string (ISO 8601) | Event end, UTC |
 
 #### `WorkoutEventType` values
 
