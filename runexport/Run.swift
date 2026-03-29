@@ -11,7 +11,6 @@ enum WorkoutEventType: String, Codable, CaseIterable {
     case pause, resume, lap, marker
     case motionPaused, motionResumed
     case segment
-    case pauseDetected, resumeDetected
 }
 
 struct WorkoutEvent: Codable {

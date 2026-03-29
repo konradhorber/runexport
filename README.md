@@ -124,8 +124,6 @@ Mirrors `HKWorkoutEvent`. Events are in chronological order.
 | `motionPaused`  | `.motionPaused`                 | Auto-pause triggered by lack of motion |
 | `motionResumed` | `.motionResumed`                | Auto-pause cleared |
 | `segment`       | `.segment`                      | **Interval boundary.** Emitted by Apple Watch when a workout uses an interval template. Consecutive pairs of `segment` events delimit individual work/recovery intervals — the interval runs from a segment's `startDate` to its `endDate` |
-| `pauseDetected` | `.pauseDetected`                | System detected a pause |
-| `resumeDetected`| `.resumeDetected`               | System detected a resume |
 
 > **Interval detection:** Filter `workoutEvents` for `type == "segment"`. Each segment event covers exactly one interval period (work or recovery). Alternate segments correspond to alternating work/recovery phases. Only present when the workout was recorded using an interval template; `workoutEvents` will be empty for free-form runs.
 
