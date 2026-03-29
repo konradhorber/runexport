@@ -43,12 +43,14 @@ struct APIClientTests {
             endDate: Date(timeIntervalSince1970: 3600),
             distance: 10_000,
             duration: 3600,
+            isIndoor: false,
             calories: 500,
             averageHeartRate: averageHeartRate,
             maxHeartRate: nil,
             averagePacePerKilometer: 360,
             totalElevationAscent: nil,
             totalElevationDescent: nil,
+            workoutEvents: [],
             splits: nil
         )
     }

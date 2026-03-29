@@ -77,17 +77,19 @@ class HealthKitManager {
                     let splits = try? await self.fetchKilometerSplits(for: workout)
 
                     return Run(
-                        id: UUID(uuidString: workout.uuid.uuidString) ?? UUID(),
+                        id: workout.uuid,
                         startDate: workout.startDate,
                         endDate: workout.endDate,
                         distance: distanceMeters,
                         duration: workout.duration,
+                        isIndoor: (workout.metadata?[HKMetadataKeyIndoorWorkout] as? Bool) ?? false,
                         calories: workout.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity()?.doubleValue(for: .kilocalorie()),
                         averageHeartRate: avgHR,
                         maxHeartRate: maxHR,
                         averagePacePerKilometer: distanceMeters > 0 ? workout.duration / (distanceMeters / 1000.0) : nil,
                         totalElevationAscent: ascent,
                         totalElevationDescent: descent,
+                        workoutEvents: (workout.workoutEvents ?? []).compactMap { self.workoutEvent(from: $0) },
                         splits: splits?.isEmpty == false ? splits : nil
                     )
                 }
@@ -100,6 +102,23 @@ class HealthKitManager {
         // Restore original sort order (TaskGroup doesn't preserve it)
         convertedRuns.sort { $0.startDate > $1.startDate }
         runs = convertedRuns
+    }
+
+    private func workoutEvent(from event: HKWorkoutEvent) -> WorkoutEvent? {
+        let type: WorkoutEventType
+        switch event.type {
+        case .pause:          type = .pause
+        case .resume:         type = .resume
+        case .lap:            type = .lap
+        case .marker:         type = .marker
+        case .motionPaused:   type = .motionPaused
+        case .motionResumed:  type = .motionResumed
+        case .segment:        type = .segment
+        case .pauseDetected:  type = .pauseDetected
+        case .resumeDetected: type = .resumeDetected
+        @unknown default:     return nil
+        }
+        return WorkoutEvent(type: type, startDate: event.dateInterval.start, endDate: event.dateInterval.end)
     }
 
     private func fetchKilometerSplits(for workout: HKWorkout) async throws -> [KilometerSplit] {

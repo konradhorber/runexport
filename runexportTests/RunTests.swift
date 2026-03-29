@@ -10,12 +10,14 @@ struct RunTests {
             endDate: Date().addingTimeInterval(duration),
             distance: distance,
             duration: duration,
+            isIndoor: false,
             calories: nil,
             averageHeartRate: nil,
             maxHeartRate: nil,
             averagePacePerKilometer: distance > 0 ? duration / (distance / 1000.0) : nil,
             totalElevationAscent: nil,
             totalElevationDescent: nil,
+            workoutEvents: [],
             splits: nil
         )
     }
@@ -65,22 +67,26 @@ struct RunTests {
             endDate: Date(timeIntervalSince1970: 3600),
             distance: 10_000,
             duration: 3600,
+            isIndoor: true,
             calories: 500,
             averageHeartRate: 155.0,
             maxHeartRate: 178.0,
             averagePacePerKilometer: 360,
             totalElevationAscent: 120.5,
             totalElevationDescent: 118.0,
+            workoutEvents: [WorkoutEvent(type: .segment, startDate: Date(timeIntervalSince1970: 0), endDate: Date(timeIntervalSince1970: 300))],
             splits: [KilometerSplit(kilometer: 1, pace: 355, averageHeartRate: 150, elevationAscent: 10, elevationDescent: 5)]
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(Run.self, from: data)
 
+        #expect(decoded.isIndoor == true)
         #expect(decoded.averageHeartRate == 155.0)
         #expect(decoded.maxHeartRate == 178.0)
         #expect(decoded.averagePacePerKilometer == 360)
         #expect(decoded.totalElevationAscent == 120.5)
         #expect(decoded.totalElevationDescent == 118.0)
+        #expect(decoded.workoutEvents.first?.type == .segment)
         #expect(decoded.splits?.first?.kilometer == 1)
         #expect(decoded.splits?.first?.pace == 355)
         #expect(decoded.splits?.first?.averageHeartRate == 150)
