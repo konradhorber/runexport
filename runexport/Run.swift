@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum WorkoutEventType: String, Codable {
+enum WorkoutEventType: String, Codable, CaseIterable {
     case pause, resume, lap, marker
     case motionPaused, motionResumed
     case segment
